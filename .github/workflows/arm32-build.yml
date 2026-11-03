@@ -1,0 +1,43 @@
+name: Box86 ARM32 Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm
+
+      - name: Build ARM32
+        run: |
+          docker run --rm \
+            --platform linux/arm/v7 \
+            -v "$PWD:/src" \
+            -w /src \
+            arm32v7/ubuntu:20.04 \
+            bash -c '
+              apt-get update &&
+              DEBIAN_FRONTEND=noninteractive apt-get install -y \
+                git cmake build-essential python3 &&
+              mkdir -p build &&
+              cd build &&
+              cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                -DARM_DYNAREC=ON &&
+              make -j2
+            '
+
+      - name: Upload ARM32 Box86
+        uses: actions/upload-artifact@v4
+        with:
+          name: Box86-ARM32
+          path: build/box86
